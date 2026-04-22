@@ -38,7 +38,6 @@ var deleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		imageNameOrID := args[0]
 		poolName, _ := cmd.Flags().GetString("pool")
-		force, _ := cmd.Flags().GetBool("force")
 
 		r := &rbd.RBDVolume{
 			Ctx:               cmd.Context(),
@@ -47,18 +46,59 @@ var deleteCmd = &cobra.Command{
 			ClusterNamespace:  root.StorageClusterNamespace,
 			PoolName:          poolName,
 		}
-		r.Delete(imageNameOrID, force)
+		r.Delete(imageNameOrID)
+	},
+}
+
+var flattenCmd = &cobra.Command{
+	Use:     "flatten",
+	Short:   "Flattens a cloned RBD image to remove parent dependency.",
+	Args:    cobra.ExactArgs(1),
+	Example: "odf rbdvolume flatten <image-name>",
+	Run: func(cmd *cobra.Command, args []string) {
+		imageName := args[0]
+		poolName, _ := cmd.Flags().GetString("pool")
+
+		r := &rbd.RBDVolume{
+			Ctx:               cmd.Context(),
+			Clientsets:        root.ClientSets,
+			OperatorNamespace: root.OperatorNamespace,
+			ClusterNamespace:  root.StorageClusterNamespace,
+			PoolName:          poolName,
+		}
+		r.Flatten(imageName)
+	},
+}
+
+var deleteSnapshotCmd = &cobra.Command{
+	Use:     "delete-snapshot",
+	Short:   "Deletes a specific snapshot from an RBD image.",
+	Args:    cobra.ExactArgs(2),
+	Example: "odf rbdvolume delete-snapshot <image-name> <snapshot-name>",
+	Run: func(cmd *cobra.Command, args []string) {
+		imageName := args[0]
+		snapshotName := args[1]
+		poolName, _ := cmd.Flags().GetString("pool")
+
+		r := &rbd.RBDVolume{
+			Ctx:               cmd.Context(),
+			Clientsets:        root.ClientSets,
+			OperatorNamespace: root.OperatorNamespace,
+			ClusterNamespace:  root.StorageClusterNamespace,
+			PoolName:          poolName,
+		}
+		r.DeleteSnapshot(imageName, snapshotName)
 	},
 }
 
 func init() {
 	RBDVolumeCmd.AddCommand(listCmd)
 	RBDVolumeCmd.AddCommand(deleteCmd)
+	RBDVolumeCmd.AddCommand(flattenCmd)
+	RBDVolumeCmd.AddCommand(deleteSnapshotCmd)
 
 	RBDVolumeCmd.PersistentFlags().String("pool", "ocs-storagecluster-cephblockpool", "The name of the RBD pool")
-	RBDVolumeCmd.PersistentFlags().Bool("stale", false, "Only list stale RBD volumes")
-
-	deleteCmd.Flags().Bool("force", false, "Force delete by removing snapshots and flattening clones")
+	listCmd.Flags().Bool("stale", false, "Only list stale RBD volumes")
 }
 
 // Made with Bob
